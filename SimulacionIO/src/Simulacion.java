@@ -19,7 +19,7 @@ int numSimulaciones; // Número de veces que se va a correr la simulación
 int tiempoTotal;     // Tiempo total en segundos para correr cada simulación
 int velocidad;       // Velocidad de la simulación, 0 = modo rápido, 1 = modo lento
 int duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
-Archivo archivoActualAntivirus; //Archivo que está llegando al antivirus
+Archivo archivoActual; //Archivo que está llegando al antivirus
 
 
 // Eventos
@@ -44,6 +44,8 @@ double [] eventos;   // Tiempos de ocurrencia de cada evento
 
 /* Banderas de la simulación */
 boolean antivirusLibre;
+boolean linea1routerLibre;
+boolean linea2routerLibre;
 
 // Colas
  LinkedList archivosPorRecibirAntivirus = new LinkedList(); //Para el evento "llega archivo a antivirus"
@@ -86,9 +88,11 @@ Simulacion( int ns, int tt, int v, int dt ){
     eventos[1] = 0;
     eventos[2] = 0;
     
-    //El antivirus se setea como libre
+    //booleanos se setean como libres al inicio
     antivirusLibre = true;
-    
+    linea1routerLibre = true;
+    linea2routerLibre = true
+            ;
     // Se desprograman los demás eventos
     for(int i = 3; i < 14; i++){
         eventos[i] = -1;    // -1 representa tiempo infito
@@ -270,24 +274,25 @@ void llegaTokenC(){
 void llegaArchivoAntivirus(int indice){
     reloj = eventos[indice];
     
-    archivoActualAntivirus = (Archivo) archivosPorRecibirAntivirus.pop();
+    archivoActual = (Archivo) archivosPorRecibirAntivirus.pop();
     
     if(antivirusLibre)
     {
-        switch ( archivoActualAntivirus.virus )
+        antivirusLibre = false;
+        
+        switch ( archivoActual.virus )
         {
             case 0:
-                eventos[10] = 1; //no me sé bien los tiempos
+                eventos[11] = 1; //no me sé bien los tiempos
                 break;
             case 1:
-                eventos[10] = 1; //no me sé bien los tiempos
+                eventos[11] = 1; //no me sé bien los tiempos
                 break;
             case 2:
-                eventos[10] = 1; //no me sé bien los tiempos
+                eventos[11] = 1; //no me sé bien los tiempos
                 break;
             case 3:
-                //eventos[10] = 1; //no me sé bien los tiempos
-                //no se envía
+                eventos[11] = 1; //no me sé bien los tiempos
                 break;
                 
             default:
@@ -296,7 +301,7 @@ void llegaArchivoAntivirus(int indice){
     }
     else
     {
-        colaEntradaAntivirus.addLast(archivoActualAntivirus);
+        colaEntradaAntivirus.addLast(archivoActual);
     }
     
     eventos[indice] = -1; //Desprogramo el evento
@@ -304,15 +309,89 @@ void llegaArchivoAntivirus(int indice){
 }
 
 void seLiberaAntivirus(){
-        
+    reloj = eventos[11];
+    
+    antivirusLibre = true;
+    
+    if(archivoActual.virus < 3) //Si es un archivo valido
+    {
+        if(linea1routerLibre)
+        {
+            eventos[12] = reloj + (archivoActual.tamano/64) ; //el tiempo de transmisión al router es 0
+        }
+        else
+        {
+            if(linea2routerLibre)
+            {
+                 eventos[13] = reloj + (archivoActual.tamano/64) ; //el tiempo de transmisión al router es 0
+            }
+            else
+            {
+                 colaSalidaAntivirus.addLast(archivoActual);
+            }
+        }
+    }
+    if(!colaEntradaAntivirus.isEmpty())
+    {
+        antivirusLibre = false;
+        archivoActual = (Archivo) colaEntradaAntivirus.pop();
+        switch ( archivoActual.virus )
+        {
+            case 0:
+                eventos[11] = 1; //no me sé bien los tiempos
+                break;
+            case 1:
+                eventos[11] = 1; //no me sé bien los tiempos
+                break;
+            case 2:
+                eventos[11] = 1; //no me sé bien los tiempos
+                break;
+            case 3:
+                eventos[11] = 1; //no me sé bien los tiempos
+                break;
+                
+            default:
+                break;
+        }
+    }
+    else
+    {
+        eventos[11] = -1; //Se desprograma este evento.
+    }
 }
 
 void seLiberaLinea1(){
+    reloj = eventos[12];
     
+    if(!colaSalidaAntivirus.isEmpty())
+    {
+        Archivo actual;
+        actual = ((Archivo) colaSalidaAntivirus.pop());
+        eventos[12] = reloj + (actual.tamano/64) ;
+        linea1routerLibre = false;
+    }
+    else
+    {
+        linea1routerLibre = true;
+        eventos[12] = -1; //Se desprograma el evento
+    }
 }
 
 void seLiberaLinea2(){
+    reloj = eventos[13];
     
+    if(!colaSalidaAntivirus.isEmpty())
+    {
+        Archivo actual;
+        actual = ((Archivo) colaSalidaAntivirus.pop());
+        eventos[13] = reloj + (actual.tamano/64) ;
+        linea2routerLibre = false;
+    }
+    else
+    {
+        linea2routerLibre = true;
+        eventos[13] = -1; //Se desprograma el evento
+    }
 }
 
 
