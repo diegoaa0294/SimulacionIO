@@ -1,9 +1,10 @@
 
 import java.util.Random;
+import java.util.*;
 
 /**
  *
- * @author Jean Carlos Zuñiga ffddfdf
+ * @author Jean Carlo Zuñiga 
  * @author Diego Angulo
  *  
  */
@@ -18,6 +19,7 @@ int numSimulaciones; // Número de veces que se va a correr la simulación
 int tiempoTotal;     // Tiempo total en segundos para correr cada simulación
 int velocidad;       // Velocidad de la simulación, 0 = modo rápido, 1 = modo lento
 int duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
+Archivo archivoActualAntivirus; //Archivo que está llegando al antivirus
 
 
 // Eventos
@@ -34,15 +36,20 @@ double [] eventos;   // Tiempos de ocurrencia de cada evento
 6  -> llegaTokenA()
 7  -> llegaTokenB()
 8  -> llegaTokenC()
-9  -> llegaArchivoAntivirus()
+9  -> llegaArchivoAntivirus(int indice)
 10 -> seLiberaAntivirus()
 11 -> seLiberaLinea1()
 12 -> seLiberaLinea2()
 */
 
+/* Banderas de la simulación */
+boolean antivirusLibre;
 
 // Colas
-//...
+ LinkedList archivosPorRecibirAntivirus = new LinkedList(); //Para el evento "llega archivo a antivirus"
+ LinkedList colaEntradaAntivirus = new LinkedList(); //Archivos que esperan para ser atendidos por el antivirus
+ LinkedList colaSalidaAntivirus = new LinkedList(); //Archivos que esperan para ser enviados por el reouter
+ 
 
 
 // Estructura de archivo
@@ -71,7 +78,7 @@ Simulacion( int ns, int tt, int v, int dt ){
     velocidad = v;
     duracionToken = dt;
     
-    eventos = new double [13];
+    eventos = new double [14];  
     reloj = 0;
     
     // Los primeros eventos a ocurrir
@@ -79,8 +86,11 @@ Simulacion( int ns, int tt, int v, int dt ){
     eventos[1] = 0;
     eventos[2] = 0;
     
+    //El antivirus se setea como libre
+    antivirusLibre = true;
+    
     // Se desprograman los demás eventos
-    for(int i = 3; i < 13; i++){
+    for(int i = 3; i < 14; i++){
         eventos[i] = -1;    // -1 representa tiempo infito
     }
 }
@@ -151,18 +161,22 @@ void siguenteEvento(){
         break;
         
         case 9:
-        llegaArchivoAntivirus();
+        llegaArchivoAntivirus(9);
+        break;
+            
+        case 10:
+        llegaArchivoAntivirus(10);
         break;
         
-        case 10:
+        case 11:
         seLiberaAntivirus();
         break;
             
-        case 11:
+        case 12:
         seLiberaLinea1();
         break;
         
-        case 12:
+        case 13:
         seLiberaLinea2();
         break;
         
@@ -253,12 +267,44 @@ void llegaTokenC(){
 
 }
 
-void llegaArchivoAntivirus(){
+void llegaArchivoAntivirus(int indice){
+    reloj = eventos[indice];
     
+    archivoActualAntivirus = (Archivo) archivosPorRecibirAntivirus.pop();
+    
+    if(antivirusLibre)
+    {
+        switch ( archivoActualAntivirus.virus )
+        {
+            case 0:
+                eventos[10] = 1; //no me sé bien los tiempos
+                break;
+            case 1:
+                eventos[10] = 1; //no me sé bien los tiempos
+                break;
+            case 2:
+                eventos[10] = 1; //no me sé bien los tiempos
+                break;
+            case 3:
+                //eventos[10] = 1; //no me sé bien los tiempos
+                //no se envía
+                break;
+                
+            default:
+                break;
+        }
+    }
+    else
+    {
+        colaEntradaAntivirus.addLast(archivoActualAntivirus);
+    }
+    
+    eventos[indice] = -1; //Desprogramo el evento
+
 }
 
 void seLiberaAntivirus(){
-    
+        
 }
 
 void seLiberaLinea1(){
