@@ -154,19 +154,39 @@ void seLiberaLinea2(){
 
 /*     NUMEROS ALEATORIOS     */
     
-int generarExponencial(){
+double generarExponencial(){
+    
+    double lambda = 1/5;
+    
+    double r = Math.random();   //Número aleatorio entre 0 y 1 con distribución uniforme.
+    
+    double x = -Math.log( 1-r )/lambda;
+    
+    return x;
+}
+
+
+double generarUniforme(){
+    
+    double r = Math.random();   //Número aleatorio entre 0 y 1 con distribución uniforme.
+    return 0;
+}
+
+double generarNormal(){
 return 0;
 }
 
-int generarUniforme(){
-return 0;
+double generarDistB(){
+    
+    // f(x) = x/40
+    // F(x) = ( (x^2)-64 ) / 80
+    
+    double r = Math.random();   //Número aleatorio entre 0 y 1 con distribución uniforme.
+    
+    double x = Math.sqrt( 80*r + 64 );
+    
+    return x;
 }
-
-int generarNormal(){
-return 0;
-}
-
-// Falta f(x) = x/40
 
 
     
