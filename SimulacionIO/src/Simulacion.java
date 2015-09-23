@@ -467,8 +467,14 @@ int generarTamano(){
 
 
 int generarNumVirus(){
- 
-    return 0;
+    
+    int min = 0;
+    int max = 3;
+    
+    Random r = new Random();
+    int numero_virus = r.nextInt(max - min + 1) + min; //Número aleatorio entre 1 y 64 con distribución uniforme.
+    
+    return numero_virus;
 }
 
     
