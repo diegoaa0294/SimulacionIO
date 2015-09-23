@@ -26,7 +26,9 @@ public class Simulacion {
     int tiempoTotal;     // Tiempo total en segundos para correr cada simulación
     int velocidad;       // Velocidad de la simulación, 0 = modo rápido, 1 = modo lento
     int duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
-
+    
+    int contadorSimulacion;
+    
     Archivo archivoActual; //Archivo que está llegando al antivirus
 
     // Interfaz gráfica de usuario
@@ -57,12 +59,23 @@ public class Simulacion {
     boolean antivirusLibre;
     boolean linea1routerLibre;
     boolean linea2routerLibre;
+    
+    // Tiempos de token
+    double tokenA;
+    double tokenB;
+    double tokenC;
 
     
     // Colas de objetos Archivo
     LinkedList<Archivo> colaEntradaAntivirus;        //Archivos que esperan para ser atendidos por el antivirus
     LinkedList<Archivo> colaSalidaAntivirus ;        //Archivos que esperan para ser enviados por el reouter
-
+    
+    LinkedList<Archivo> colaA1;
+    LinkedList<Archivo> colaA2;
+    LinkedList<Archivo> colaB1;
+    LinkedList<Archivo> colaB2;
+    LinkedList<Archivo> colaC1;
+    LinkedList<Archivo> colaC2;
     
     // Estructura de archivo
     class Archivo {
@@ -90,6 +103,8 @@ public class Simulacion {
 
         eventos = new double[13];
         reloj = 0;
+        
+        
 
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
@@ -108,7 +123,14 @@ public class Simulacion {
         
         // Se crean las colas
         colaEntradaAntivirus = new LinkedList();
-        colaSalidaAntivirus = new LinkedList();   
+        colaSalidaAntivirus = new LinkedList();
+        
+        colaA1 =  new LinkedList();
+        colaA2 =  new LinkedList();
+        colaB1 =  new LinkedList();
+        colaB2 =  new LinkedList();
+        colaC1 =  new LinkedList();
+        colaC2 =  new LinkedList();
     }
     
     
@@ -135,7 +157,7 @@ public class Simulacion {
     void inicializarParametros() {
 
         // Espera a que los datos del usario sean válidos
-        while (interfaz.datosValidos() == false) {
+        while ( interfaz.datosValidos() == false ) {
             try {
                 sleep(100);
             } catch (InterruptedException ex) {
@@ -153,9 +175,19 @@ public class Simulacion {
     
     
     void iniciarSimulacion() {
+        
+        /*
+        while( reloj < tiempoTotal  ){
+            siguienteEvento();
+        }
+        
+        
+        */
+        
         interfaz.escribirResultado("\nIniciando simulación\n\n");
         delay();
         siguenteEvento();
+    
     }
     
     
@@ -260,7 +292,43 @@ public class Simulacion {
                 break;
         }
     }
-
+    
+    
+    
+    // Busca y saca de una cola el Arcihvo más grande que se puede enviar en
+    // el tiempo especificado en tiempoToken y devuelve dicho Archivo.
+    // Devuelve null si no encuentra un Archivo que satisfaga la condición.
+    private Archivo buscarArchivo( LinkedList<Archivo> cola, double tiempoToken ){
+        
+        Archivo A = null;
+        
+        // Si la cola no está vacía
+        if( cola.size() > 0 ){
+            
+            // Itera sobre la cola
+            for (int i = 1; i < cola.size(); i++) {
+                
+                // Si el archivo actual da tiempo de enviar
+                if( cola.get(i).tamano*1/2+1/4 <= tiempoToken ){
+                    
+                    // Si todavía no se le ha asignado nada a A
+                    if( A == null  ){
+                        A = cola.get(i);
+                    }
+                    // Si el archivo actual es más grande que A
+                    else if( A.tamano < cola.get(i).tamano ){
+                        A = cola.get(i);
+                    }
+                }
+            }
+            
+            if( A != null ){
+                cola.remove(A); // Remueve el archivo de la cola
+            }
+        }
+        
+        return A; // Devuelve el archivo
+    }
 
     
     /*----------------------------- EVENTOS ----------------------------------*/
@@ -276,9 +344,15 @@ public class Simulacion {
         int virus = generarNumVirus();
         Archivo A = new Archivo(prioridad, tamano, virus, 'A');
 
-        // Encolar el archivo
+        // Encola el archivo
+        if( prioridad == 1 ){
+            colaA1.add( A );
+        }
+        else{
+            colaA2.add( A );
+        }
         
-        
+        // Programa el evento llegaArchivoA
         eventos[0] = reloj + generarExponencial();
     }
     
@@ -294,10 +368,18 @@ public class Simulacion {
         int virus = generarNumVirus();
         Archivo A = new Archivo(prioridad, tamano, virus, 'B');
 
-        //Encolar archivo
+        // Encola el archivo
+        if( prioridad == 1 ){
+            colaB1.add( A );
+        }
+        else{
+            colaB2.add( A );
+        }
         
         
+        // Programa el evento llegaArchivoB
         eventos[1] = reloj + generarDistB();
+        
     }
 
     
@@ -312,10 +394,18 @@ public class Simulacion {
         int virus = generarNumVirus();
         Archivo A = new Archivo(prioridad, tamano, virus, 'C');
 
-        //Encolar archivo
+        // Encola el archivo
+        if( prioridad == 1 ){
+            colaC1.add( A );
+        }
+        else{
+            colaC2.add( A );
+        }
         
         
+        // Programa el evento llegaArchivoC
         eventos[2] = reloj + generarNormal();
+        
     }
 
     
@@ -339,19 +429,60 @@ public class Simulacion {
     
 
     void llegaTokenA() {
+        
+        reloj = eventos[6];                 // Se actualiza el reloj
+        eventos[6] = -1;                    // infinito
+        eventos[7] = reloj + duracionToken; // Programa llegaTokenB
+        tokenA = duracionToken;
+        Archivo archivoEnvio;
+        
+        
+        // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
+        // se saca el más grande, si no se busca en la cola de prioridad 2.
+        if( ( archivoEnvio = buscarArchivo(colaA1, tokenA) ) == null ){
+            archivoEnvio = buscarArchivo(colaA2, tokenA);
+        }
+        
+        // Si se encontró algún archivo
+        if( archivoEnvio != null ){
+            
+            // Se calcula el tiempo de llegada del archivo al antivirus
+            //evento[] = archivoEnvio.tamano*1/2+1/4;
+            
+            archivosPorRecibirAntivirus.add( archivoEnvio ); // Se encola el archivo
+            
+            tokenA = tokenA - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
 
+            eventos[3] = archivoEnvio.tamano*1/2;          // Se calcula seLiberaA
+        }
+        else{
+            tokenA = 0;
+            eventos[7] = reloj; // Libera el token, programa llegaTokenB
+        }
     }
     
     
 
     void llegaTokenB() {
-
+        
+        reloj = eventos[7];
+        eventos[7] = -1; // infinito
+        eventos[8] = reloj + duracionToken; // Programa llegaTokenC
+        tokenB = duracionToken;
+        Archivo archivoEnvio;
+        
+        
     }
 
     
     
     void llegaTokenC() {
-
+        
+        reloj = eventos[8];
+        eventos[8] = -1; // infinito
+        eventos[6] = reloj + duracionToken; // Programa llegaTokenA
+        tokenC = duracionToken;
+        Archivo archivoEnvio;
     }
 
     
