@@ -46,7 +46,7 @@ public class Simulacion {
      6  -> llegaTokenA()
      7  -> llegaTokenB()
      8  -> llegaTokenC()
-     9  -> llegaArchivoAntivirus(int indice)
+     9  -> llegaArchivoAntivirus()
      10 -> seLiberaAntivirus()
      11 -> seLiberaLinea1()
      12 -> seLiberaLinea2()
@@ -60,7 +60,6 @@ public class Simulacion {
 
     
     // Colas de objetos Archivo
-    LinkedList<Archivo> archivosPorRecibirAntivirus; //Para el evento "llega archivo a antivirus"
     LinkedList<Archivo> colaEntradaAntivirus;        //Archivos que esperan para ser atendidos por el antivirus
     LinkedList<Archivo> colaSalidaAntivirus ;        //Archivos que esperan para ser enviados por el reouter
 
@@ -89,7 +88,7 @@ public class Simulacion {
         // Crea la interfaz gráfica
         crearInterfaz();
 
-        eventos = new double[14];
+        eventos = new double[13];
         reloj = 0;
 
         // Los primeros eventos a ocurrir
@@ -108,7 +107,6 @@ public class Simulacion {
         }
         
         // Se crean las colas
-        archivosPorRecibirAntivirus = new LinkedList();
         colaEntradaAntivirus = new LinkedList();
         colaSalidaAntivirus = new LinkedList();   
     }
@@ -243,22 +241,18 @@ public class Simulacion {
                 break;
 
             case 9:
-                llegaArchivoAntivirus(9);
+                llegaArchivoAntivirus();
                 break;
 
             case 10:
-                llegaArchivoAntivirus(10);
-                break;
-
-            case 11:
                 seLiberaAntivirus();
                 break;
 
-            case 12:
+            case 11:
                 seLiberaLinea1();
                 break;
 
-            case 13:
+            case 12:
                 seLiberaLinea2();
                 break;
 
@@ -362,27 +356,31 @@ public class Simulacion {
 
     
     
-    void llegaArchivoAntivirus(int indice) {
+    void llegaArchivoAntivirus() {
         
-        reloj = eventos[indice];
+        reloj = eventos[9];
 
-        archivoActual = archivosPorRecibirAntivirus.pop();
+        archivoActual = colaEntradaAntivirus.pop();
 
         if (antivirusLibre) {
             antivirusLibre = false;
 
             switch (archivoActual.virus) {
                 case 0:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 0 virus y pase a la primera revisión
+                    eventos[10] = archivoActual.tamano/(8); 
                     break;
                 case 1:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 1 virus y pase a la segunda revisión
+                    eventos[10] = archivoActual.tamano/(8*2);
                     break;
                 case 2:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 2 virus y pase a la tercera revisión
+                    eventos[10] = archivoActual.tamano/(8*3); 
                     break;
                 case 3:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 3 virus, ya no pasará
+                    eventos[10] = archivoActual.tamano/(8*3); 
                     break;
 
                 default:
@@ -393,7 +391,7 @@ public class Simulacion {
             colaEntradaAntivirus.addLast(archivoActual);
         }
 
-        eventos[indice] = -1; //Desprogramo el evento
+        eventos[9] = -1; //Desprogramo el evento
 
     }
     
@@ -401,45 +399,51 @@ public class Simulacion {
 
     void seLiberaAntivirus() {
         
-        reloj = eventos[11];
+        reloj = eventos[10];
 
         antivirusLibre = true;
-
-        if (archivoActual.virus < 3) //Si es un archivo valido
+        //Pregunta si el archivo que acaba de revisar es válido
+        if (archivoActual.virus < 3) 
         {
             if (linea1routerLibre) {
-                eventos[12] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
+                eventos[11] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
             } else {
                 if (linea2routerLibre) {
-                    eventos[13] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
+                    eventos[12] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
                 } else {
                     colaSalidaAntivirus.addLast(archivoActual);
                 }
             }
         }
-        if (!colaEntradaAntivirus.isEmpty()) {
+        if (!colaEntradaAntivirus.isEmpty()) 
+        {
             antivirusLibre = false;
             archivoActual = colaEntradaAntivirus.pop();
             switch (archivoActual.virus) {
                 case 0:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 0 virus y pase a la primera revisión
+                    eventos[10] = archivoActual.tamano/(8); 
                     break;
                 case 1:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 1 virus y pase a la segunda revisión
+                    eventos[10] = archivoActual.tamano/(8*2);
                     break;
                 case 2:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 2 virus y pase a la tercera revisión
+                    eventos[10] = archivoActual.tamano/(8*3); 
                     break;
                 case 3:
-                    eventos[11] = 1; //no me sé bien los tiempos
+                    //caso en que tenga 3 virus, ya no pasará
+                    eventos[10] = archivoActual.tamano/(8*3); 
                     break;
 
                 default:
                     break;
             }
         } 
-        else {
-            eventos[11] = -1; //Se desprograma este evento.
+        else 
+        {
+            eventos[10] = -1; //Se desprograma este evento.
         }
     }
     
@@ -447,17 +451,17 @@ public class Simulacion {
 
     void seLiberaLinea1() {
         
-        reloj = eventos[12];
+        reloj = eventos[11];
 
         if (!colaSalidaAntivirus.isEmpty()) {
             Archivo actual;
             actual = colaSalidaAntivirus.pop();
-            eventos[12] = reloj + (actual.tamano / 64);
+            eventos[11] = reloj + (actual.tamano / 64);
             linea1routerLibre = false;
         } 
         else {
             linea1routerLibre = true;
-            eventos[12] = -1; //Se desprograma el evento
+            eventos[11] = -1; //Se desprograma el evento
         }
     }
     
@@ -465,17 +469,17 @@ public class Simulacion {
 
     void seLiberaLinea2() {
         
-        reloj = eventos[13];
+        reloj = eventos[12];
 
         if (!colaSalidaAntivirus.isEmpty()) {
             Archivo actual;
             actual = colaSalidaAntivirus.pop();
-            eventos[13] = reloj + (actual.tamano / 64);
+            eventos[12] = reloj + (actual.tamano / 64);
             linea2routerLibre = false;
         } 
         else {
             linea2routerLibre = true;
-            eventos[13] = -1; //Se desprograma el evento
+            eventos[12] = -1; //Se desprograma el evento
         }
     }
 
@@ -554,14 +558,42 @@ public class Simulacion {
     
 
     int generarNumVirus() {
-    int min = 0;
-    int max = 3;
-    
+    int min = 1;
+    int max = 100;
+    int probabilidad;
+    int numero_virus;
+        
     Random r = new Random();
-    int numero_virus = r.nextInt(max - min + 1) + min; //Número aleatorio entre 1 y 64 con distribución uniforme.
-    
-    return numero_virus;
+    probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+    //Pregunto si da en el rango de virus, 1 virus
+    if(probabilidad < 6)
+    {
+        probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+        //Pregunto si da en el rango de virus, 2 virus
+        if(probabilidad < 6)
+        {
+            probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+            //Pregunto si da en el rango de virus, 3 virus
+            if(probabilidad < 6)
+            {
+                numero_virus=100;
+            }
+            else
+            {
+                numero_virus=2;
+            }
+        }
+        else
+        {
+            numero_virus=1;
+        }
     }
+    else
+    {
+        numero_virus=0;
+    }
+    return numero_virus;
+}
 
 
     
