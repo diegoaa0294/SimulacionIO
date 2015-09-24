@@ -29,7 +29,7 @@ public class Simulacion {
     
     int contadorSimulacion;
     
-    Archivo archivoActual; //Archivo que está llegando al antivirus
+    Archivo archivoActual; // Representa el archivo que está siendo revisado por el antivirus
 
     // Interfaz gráfica de usuario
     Interfaz interfaz;
@@ -103,24 +103,25 @@ public class Simulacion {
 
         eventos = new double[13];
         reloj = 0;
+        contadorSimulacion = 1;
         
 
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
         eventos[1] = 0;
         eventos[2] = 0;
-
-        //booleanos se setean como libres al inicio
-        antivirusLibre = true;
-        linea1routerLibre = true;
-        linea2routerLibre = true;
         
         // Se desprograman los demás eventos
         for (int i = 3; i < 13; i++) {
             eventos[i] = -1;    // -1 representa tiempo infito
         }
         
-        eventos[6] = 5; // llegaTokenA
+        eventos[6] = 5; // A es la primera computadora a la que le llega el token
+        
+        //booleanos se setean como libres al inicio
+        antivirusLibre = true;
+        linea1routerLibre = true;
+        linea2routerLibre = true;
         
         // Se crean las colas
         colaEntradaAntivirus = new LinkedList();
@@ -177,27 +178,72 @@ public class Simulacion {
     
     void iniciarSimulacion() {
         
-        interfaz.escribirResultado("Iniciando simulación...\n\n");
+        interfaz.escribirResultado("Iniciando simulación "+contadorSimulacion+"\n\n");
+        interfaz.escribirResultado("_______________________________________________________________________\n\n");
         
         while( reloj <= tiempoTotal  ){
             interfaz.escribirResultado("Reloj:  " + reloj + " \n\n");
             
-            for (int i = 0; i < 13; i++) {
+            /*for (int i = 0; i < 13; i++) {
             interfaz.escribirResultado("Siguiente evento:  eventos["+i+"]: " + eventos[i] + "\n");
             }
             interfaz.escribirResultado("\n");
-            
+            */
             siguienteEvento();
-            delay();
+            delay(); // Delay de 1 segundo entre cada evento
         }
         
         finalizarSimulacion();
+        contadorSimulacion++;
     }
     
     
     
-    void finalizarSimulacion(){
+    // Finaliza una simulación
+    private void finalizarSimulacion(){
+        
+        interfaz.escribirResultado("\nSimulación "+ contadorSimulacion +" finalizada.\n\n\n\n");
+        
+        reiniciarVariables();
+        // Imprimir estadísticas
+    }
     
+    
+    
+    // Reinicia las variables globales
+    void reiniciarVariables(){
+    
+        reloj = 0;
+
+        // Los primeros eventos a ocurrir
+        eventos[0] = 0;
+        eventos[1] = 0;
+        eventos[2] = 0;
+        
+        // Se desprograman los demás eventos
+        for (int i = 3; i < 13; i++) {
+            eventos[i] = -1;    // -1 representa tiempo infito
+        }
+        
+        eventos[6] = 5; // A es la primera computadora a la que le llega el token
+        
+        //booleanos se setean como libres al inicio
+        antivirusLibre = true;
+        linea1routerLibre = true;
+        linea2routerLibre = true;
+        
+        // Se limpian todas las colas
+        colaEntradaAntivirus.clear();
+        colaSalidaAntivirus.clear();
+        colaA1.clear();
+        colaA2.clear();
+        colaB1.clear();
+        colaB2.clear();
+        colaC1.clear();
+        colaC2.clear();
+        
+        // No hay archivo en el antivirus
+        archivoActual = null;
     }
     
     
@@ -206,7 +252,8 @@ public class Simulacion {
         
         // Hay que mostrar estadisticas globales
         
-        interfaz.escribirResultado("\n\nSimulacion global finalizada.");
+        interfaz.escribirResultado("Simulación global finalizada.\n\n");
+        contadorSimulacion = 0;
         interfaz.fin();
     }
     
@@ -319,7 +366,7 @@ public class Simulacion {
         if( cola.size() > 0 ){
             
             // Itera sobre la cola
-            for (int i = 0; i < cola.size(); i++) {
+            for(int i = 0; i < cola.size(); i++) {
                 
                 // Si el archivo actual da tiempo de enviar
                 if( cola.get(i).tamano*1/2+1/4 <= tiempoToken ){
@@ -424,7 +471,7 @@ public class Simulacion {
         }
         
         // Programa el evento llegaArchivoC
-        eventos[2] = reloj + generarDistB();//generarExponencial();//generarNormal();
+        eventos[2] = reloj + generarDistB();//generarNormal();
     }
 
     
@@ -664,20 +711,32 @@ public class Simulacion {
 
     
     
+    
+    // Evento en el que llega un archivo al servidor antivirus
     void llegaArchivoAntivirus() {
         
         interfaz.escribirResultado("Llegó un archivo al antivirus\n\n");
         
-        reloj = eventos[9];
-
-        archivoActual = colaEntradaAntivirus.pop();
-
-        if (antivirusLibre) {
+        reloj = eventos[9]; // Actualiza el reloj
+        
+        
+        // Si el antivirus está libre
+        if ( antivirusLibre ) {
+            
+            // Saca el primer archivo de la cola de entrada
+            // y lo mete al antivirus como archivo actual.
+            archivoActual = colaEntradaAntivirus.pop();
+            
+            
+            // El antivirus ahora está ocupado
             antivirusLibre = false;
             
             interfaz.escribirResultado("Revisando archivo...\n\n");
             
-            switch (archivoActual.virus) {
+            
+            // Programa el evento seLiberaAntivirus según el número
+            // de virus que tiene el archivo actual.
+            switch ( archivoActual.virus ) {
                 case 0:
                     //caso en que tenga 0 virus y pase a la primera revisión
                     eventos[10] = reloj + archivoActual.tamano/(8); 
@@ -698,52 +757,66 @@ public class Simulacion {
                 default:
                     break;
             }
-        } 
-        else {
-            colaEntradaAntivirus.add( archivoActual ); //*revisar
         }
 
-        eventos[9] = -1; //Desprogramo el evento
+        eventos[9] = -1; // De desprograma el evento
     }
     
     
-
+    
+    // Evento en el que se libera el servidor antivirus
     void seLiberaAntivirus() {
         
         interfaz.escribirResultado("Se liberó el antivirus\n\n");
         
-        reloj = eventos[10];
+        reloj = eventos[10]; // Actualiza el reloj
 
         antivirusLibre = true;
+        
         //Pregunta si el archivo que acaba de revisar es válido
         if ( archivoActual.virus < 3 ){
             
+            
+            // Mete el archivo que acaba de revisar a la cola de salida
+            colaSalidaAntivirus.add( archivoActual );
+            
+            // Si la primera línea del router está libre
             if ( linea1routerLibre ) {
                 
                 interfaz.escribirResultado("Enviando archivo al router...\n\n");
-                colaSalidaAntivirus.add( archivoActual );
                 eventos[11] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
             }
             
+            // Si la segunda línea del router está libre
             else if( linea2routerLibre ) {
                 interfaz.escribirResultado("Enviando archivo al router...\n\n");
-                colaSalidaAntivirus.add( archivoActual );
                 eventos[12] = reloj + (archivoActual.tamano / 64); //el tiempo de transmisión al router es 0
-            } 
+            }
+            
+            // Si la ninguna línea del router está libre
             else {
                 interfaz.escribirResultado("Router ocupado...\n\n");
-                colaSalidaAntivirus.add( archivoActual );
-            }   
+            }
         }
         
         
-        if (!colaEntradaAntivirus.isEmpty()){
+        // Si hay archivos en la cola de entrada
+        if( !colaEntradaAntivirus.isEmpty() ){
             
             interfaz.escribirResultado("Revisando archivo...\n\n");
             
-            antivirusLibre = false;
+            // Saca el primer archivo de la cola de entrada
+            // y lo mete al antivirus como archivo actual.
             archivoActual = colaEntradaAntivirus.pop();
-            switch (archivoActual.virus) {
+            
+            
+            // El antivirus ahora está ocupado
+            antivirusLibre = false;
+            
+            
+            // Programa el evento seLiberaAntivirus según el número
+            // de virus que tiene el archivo actual.
+            switch ( archivoActual.virus ) {
                 case 0:
                     //caso en que tenga 0 virus y pase a la primera revisión
                     eventos[10] = reloj +archivoActual.tamano/(8); 
@@ -771,22 +844,24 @@ public class Simulacion {
     }
     
     
-
+    
+    // Evento en el que se libera la línea 1 del router
     void seLiberaLinea1() {
         
         interfaz.escribirResultado("Se liberó la línea 1 del router\n\n");
         
-        reloj = eventos[11];
-
+        reloj = eventos[11]; //Se actualiza el reloj
+        
+        // Si hay archivos en la cola de salida del antivirus
         if ( colaSalidaAntivirus.size() > 0 ) {
             
             interfaz.escribirResultado("Router enviando archivo por línea 1...\n\n");
             
             Archivo actual;
-            actual = colaSalidaAntivirus.pop();
+            actual = colaSalidaAntivirus.pop(); //**Creo que hay que hacer algo con este archivo
             eventos[11] = reloj + (actual.tamano / 64);
             linea1routerLibre = false;
-        } 
+        }
         else {
             linea1routerLibre = true;
             eventos[11] = -1; //Se desprograma el evento
@@ -794,22 +869,25 @@ public class Simulacion {
     }
     
     
-
+    
+    // Evento en el que se libera la línea 2 del router
     void seLiberaLinea2() {
         
         interfaz.escribirResultado("Se liberó la línea 2 del router\n\n");
         
-        reloj = eventos[12];
-
+        reloj = eventos[12]; //Se actualiza el reloj
+        
+        
+        // Si hay archivos en la cola de salida del antivirus
         if ( colaSalidaAntivirus.size() > 0 ) {
             
             interfaz.escribirResultado("Router enviando archivo por línea 2...\n\n");
             
             Archivo actual;
-            actual = colaSalidaAntivirus.pop();
+            actual = colaSalidaAntivirus.pop(); 
             eventos[12] = reloj + (actual.tamano / 64);
             linea2routerLibre = false;
-        } 
+        }
         else {
             linea2routerLibre = true;
             eventos[12] = -1; //Se desprograma el evento
@@ -828,7 +906,7 @@ public class Simulacion {
         // F(x) = 1-e^(-lambda*x)
         // x = - ln(1-r)/lambda
         
-        double lambda = 1 / 5;
+        double lambda = 0.2;
 
         double r = Math.random();   //Número aleatorio entre 0 y 1 con distribución uniforme.
 
@@ -932,8 +1010,10 @@ public class Simulacion {
 
 
     
+    
+    
     public static void main(String[] args) {
-
+        
         Simulacion Sim = new Simulacion();
         
         // Ejecución del programa
@@ -949,5 +1029,6 @@ public class Simulacion {
                     
             Sim.finalizarSimulacionGlobal();
         }
+
     }
 }
