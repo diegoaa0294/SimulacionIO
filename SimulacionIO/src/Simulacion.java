@@ -23,9 +23,9 @@ public class Simulacion {
 
     // Valores especificados por el usuario
     int numSimulaciones; // Número de veces que se va a correr la simulación
-    int tiempoTotal;     // Tiempo total en segundos para correr cada simulación
+    double tiempoTotal;     // Tiempo total en segundos para correr cada simulación
     int velocidad;       // Velocidad de la simulación, 0 = modo rápido, 1 = modo lento
-    int duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
+    double duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
     
     int contadorSimulacion;
     
@@ -59,6 +59,7 @@ public class Simulacion {
     boolean antivirusLibre;
     boolean linea1routerLibre;
     boolean linea2routerLibre;
+    boolean interrupcion;
     
     // Tiempos de token
     double tokenA;
@@ -118,10 +119,11 @@ public class Simulacion {
         
         eventos[6] = 5; // A es la primera computadora a la que le llega el token
         
-        //booleanos se setean como libres al inicio
+        // Se inicializan los booleanos
         antivirusLibre = true;
         linea1routerLibre = true;
         linea2routerLibre = true;
+        interrupcion = false;
         
         // Se crean las colas
         colaEntradaAntivirus = new LinkedList();
@@ -181,7 +183,7 @@ public class Simulacion {
         interfaz.escribirResultado("Iniciando simulación "+contadorSimulacion+"\n\n");
         interfaz.escribirResultado("_______________________________________________________________________\n\n");
         
-        while( reloj <= tiempoTotal  ){
+        while( interfaz.interrupcion == false && reloj <= tiempoTotal  ){
             interfaz.escribirResultado("Reloj:  " + reloj + " \n\n");
             
             /*for (int i = 0; i < 13; i++) {
@@ -193,6 +195,12 @@ public class Simulacion {
             delay(); // Delay de 1 segundo entre cada evento
         }
         
+        // Si la ejecución de la simulación de interrumpió
+        if( interfaz.interrupcion ){
+            interrupcion = true;
+            interfaz.escribirResultado("Simulación interrumpida.\n\n");
+        }
+        
         finalizarSimulacion();
         contadorSimulacion++;
     }
@@ -202,7 +210,9 @@ public class Simulacion {
     // Finaliza una simulación
     private void finalizarSimulacion(){
         
-        interfaz.escribirResultado("\nSimulación "+ contadorSimulacion +" finalizada.\n\n\n\n");
+        if( interrupcion == false ){
+            interfaz.escribirResultado("\nSimulación "+ contadorSimulacion +" finalizada.\n\n\n\n");
+        }
         
         reiniciarVariables();
         // Imprimir estadísticas
@@ -227,7 +237,7 @@ public class Simulacion {
         
         eventos[6] = 5; // A es la primera computadora a la que le llega el token
         
-        //booleanos se setean como libres al inicio
+        // Se inicializan los booleanos
         antivirusLibre = true;
         linea1routerLibre = true;
         linea2routerLibre = true;
@@ -252,8 +262,13 @@ public class Simulacion {
         
         // Hay que mostrar estadisticas globales
         
-        interfaz.escribirResultado("Simulación global finalizada.\n\n");
-        contadorSimulacion = 0;
+        // Si no hubo interrupción
+        if( interrupcion == false ){
+            interfaz.escribirResultado("Simulación global finalizada.\n\n");
+        }
+        
+        contadorSimulacion = 1;
+        interrupcion = false;
         interfaz.fin();
     }
     
@@ -1024,7 +1039,13 @@ public class Simulacion {
             // Ejecuta la simulación el número de veces indicado por el usuario
             for( int i = 0; i < Sim.numSimulaciones; i++ ){
                 
-                Sim.iniciarSimulacion();
+                // Si no se interrumpe la simulación
+                if( Sim.interrupcion == false ){
+                    Sim.iniciarSimulacion();
+                }
+                else{
+                    break; // Si se interrumple la simulación
+                }
             }
                     
             Sim.finalizarSimulacionGlobal();
