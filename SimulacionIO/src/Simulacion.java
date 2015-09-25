@@ -28,6 +28,7 @@ public class Simulacion {
     double duracionToken;   // Tiempo en segundos durante el cuál a cada máquina se le asigna el token
     
     int contadorSimulacion;
+    String computadoraConToken;
     
     Archivo archivoActual; // Representa el archivo que está siendo revisado por el antivirus
 
@@ -105,7 +106,8 @@ public class Simulacion {
         eventos = new double[13];
         reloj = 0;
         contadorSimulacion = 1;
-        
+        computadoraConToken = "";
+        //archivoActual = null;
 
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
@@ -184,14 +186,52 @@ public class Simulacion {
         interfaz.escribirResultado("_______________________________________________________________________\n\n");
         
         while( interfaz.interrupcion == false && reloj <= tiempoTotal  ){
+            
+            // Ejecuta el siguiente evento a ocurrir
+            siguienteEvento();
+            
+            // Muestra el reloj del sistema
             interfaz.escribirResultado("Reloj:  " + reloj + " \n\n");
             
-            /*for (int i = 0; i < 13; i++) {
+            // Muestra los tamaños de las colas
+            interfaz.escribirResultado("Cola A prioridad 1:  " + colaA1.size() + " \n");
+            interfaz.escribirResultado("Cola A prioridad 2:  " + colaA2.size() + " \n");
+            interfaz.escribirResultado("Cola B prioridad 1:  " + colaB1.size() + " \n");
+            interfaz.escribirResultado("Cola B prioridad 2:  " + colaB2.size() + " \n");
+            interfaz.escribirResultado("Cola C prioridad 1:  " + colaC1.size() + " \n");
+            interfaz.escribirResultado("Cola C prioridad 2:  " + colaC2.size() + " \n");
+            interfaz.escribirResultado("Cola entrada antivirus:  " + colaEntradaAntivirus.size() + " \n");
+            interfaz.escribirResultado("Cola salida antivirus:  " + colaSalidaAntivirus.size() + " \n\n");
+            
+            // Muestra cual computadora tiene el token
+            interfaz.escribirResultado("Computadora con token:  " + computadoraConToken + " \n\n");
+            
+            // Muestra el archivo que está siendo revisado por el router
+            interfaz.escribirResultado("Archivo en revisión:\n");
+            
+            if( archivoActual != null ){
+                interfaz.escribirResultado("Procedencia: "+archivoActual.computadora+"\n");
+                interfaz.escribirResultado("Prioridad: "+archivoActual.prioridad+"\n");
+                interfaz.escribirResultado("Tamaño: "+archivoActual.tamano+"\n");
+                interfaz.escribirResultado("Virus: "+archivoActual.virus+"\n\n");
+            }
+            else{
+                interfaz.escribirResultado("Ninguno\n\n");
+            }
+            
+            // Muestra las líneas del router
+            interfaz.escribirResultado("Línea 1 del router libre:  " + linea1routerLibre + " \n");
+            interfaz.escribirResultado("Línea 2 del router libre:  " + linea2routerLibre + " \n\n");
+            
+            interfaz.escribirResultado("------------------------------------------------------------------- \n\n");
+            
+            /* Para probar
+            for (int i = 0; i < 13; i++) {
             interfaz.escribirResultado("Siguiente evento:  eventos["+i+"]: " + eventos[i] + "\n");
             }
             interfaz.escribirResultado("\n");
             */
-            siguienteEvento();
+            
             delay(); // Delay de 1 segundo entre cada evento
         }
         
@@ -413,7 +453,7 @@ public class Simulacion {
     // Evento en el que llega un archivo a la computadora A
     void llegaArchivoA() {
         
-        interfaz.escribirResultado("Llegó un archivo a la computadora A\n\n");
+        interfaz.escribirResultado("Evento:  Llegó un archivo a la computadora A\n\n");
 
         reloj = eventos[0]; // Actualiza el reloj
 
@@ -440,7 +480,7 @@ public class Simulacion {
     // Evento en el que llega un archivo a la computadora B
     void llegaArchivoB() {
 
-        interfaz.escribirResultado("Llegó un archivo a la computadora B\n\n");
+        interfaz.escribirResultado("Evento:  Llegó un archivo a la computadora B\n\n");
         
         reloj = eventos[1]; // Actualiza el reloj
 
@@ -467,7 +507,7 @@ public class Simulacion {
     // Evento en el que llega un archivo a la computadora C
     void llegaArchivoC() {
 
-        interfaz.escribirResultado("Llegó un archivo a la computadora C\n\n");
+        interfaz.escribirResultado("Evento:  Llegó un archivo a la computadora C\n\n");
         
         reloj = eventos[2]; // Actualiza el reloj
 
@@ -494,7 +534,7 @@ public class Simulacion {
     // Evento en el que se desocupa la computadora A
     void seLiberaA() {
         
-        interfaz.escribirResultado("Se liberó la computadora A\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó la computadora A\n\n");
         
         reloj = eventos[3]; // Se actualiza el reloj
         Archivo archivoEnvio;
@@ -533,7 +573,7 @@ public class Simulacion {
     // Evento en el que se desocupa la computadora B
     void seLiberaB() {
         
-        interfaz.escribirResultado("Se liberó la computadora B\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó la computadora B\n\n");
         
         reloj = eventos[4]; // Se actualiza el reloj
         Archivo archivoEnvio;
@@ -570,7 +610,7 @@ public class Simulacion {
     // Evento en el que se desocupa la computadora C
     void seLiberaC() {
         
-        interfaz.escribirResultado("Se liberó la computadora C\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó la computadora C\n\n");
         
         reloj = eventos[5]; // Se actualiza el reloj
         Archivo archivoEnvio;
@@ -607,7 +647,8 @@ public class Simulacion {
     // Evento en el que el token llega a la computadora A
     void llegaTokenA() {
         
-        interfaz.escribirResultado("Llegó el token a la computadora A\n\n");
+        interfaz.escribirResultado("Evento:  Llegó el token a la computadora A\n\n");
+        computadoraConToken = "A";
         
         reloj = eventos[6];                 // Se actualiza el reloj
         eventos[6] = -1;                    // infinito, desprograma llegaTokenA
@@ -640,6 +681,7 @@ public class Simulacion {
         // Si no encuentra archivos en ninguna de las dos colas
         else{
             tokenA = 0;
+            computadoraConToken = "";
             eventos[7] = reloj; // Libera el token, programa llegaTokenB
         }
     }
@@ -649,7 +691,8 @@ public class Simulacion {
     // Evento en el que el token llega a la computadora B
     void llegaTokenB() {
         
-        interfaz.escribirResultado("Llegó el token a la computadora B\n\n");
+        interfaz.escribirResultado("Evento:  Llegó el token a la computadora B\n\n");
+        computadoraConToken = "B";
         
         reloj = eventos[7];                 // Se actualiza el reloj
         eventos[7] = -1;                    // infinito, desprograma llegaTokenB
@@ -680,6 +723,7 @@ public class Simulacion {
         // Si no encuentra archivos en ninguna de las dos colas
         else{
             tokenB = 0;
+            computadoraConToken = "";
             eventos[8] = reloj; // Libera el token, programa llegaTokenC
         }
     }
@@ -689,7 +733,8 @@ public class Simulacion {
     // Evento en el que el token llega a la computadora C
     void llegaTokenC() {
         
-        interfaz.escribirResultado("Llegó el token a la computadora C\n\n");
+        interfaz.escribirResultado("Evento:  Llegó el token a la computadora C\n\n");
+        computadoraConToken = "C";
         
         reloj = eventos[8];                 // Se actualiza el reloj
         eventos[8] = -1;                    // infinito, desprograma llegaTokenC
@@ -720,6 +765,7 @@ public class Simulacion {
         // Si no encuentra archivos en ninguna de las dos colas
         else{
             tokenC = 0;
+            computadoraConToken = "";
             eventos[6] = reloj; // Libera el token, programa llegaTokenA
         }
     }
@@ -730,7 +776,7 @@ public class Simulacion {
     // Evento en el que llega un archivo al servidor antivirus
     void llegaArchivoAntivirus() {
         
-        interfaz.escribirResultado("Llegó un archivo al antivirus\n\n");
+        interfaz.escribirResultado("Evento:  Llegó un archivo al antivirus\n\n");
         
         reloj = eventos[9]; // Actualiza el reloj
         
@@ -782,7 +828,7 @@ public class Simulacion {
     // Evento en el que se libera el servidor antivirus
     void seLiberaAntivirus() {
         
-        interfaz.escribirResultado("Se liberó el antivirus\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó el antivirus\n\n");
         
         reloj = eventos[10]; // Actualiza el reloj
 
@@ -863,7 +909,7 @@ public class Simulacion {
     // Evento en el que se libera la línea 1 del router
     void seLiberaLinea1() {
         
-        interfaz.escribirResultado("Se liberó la línea 1 del router\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó la línea 1 del router\n\n");
         
         reloj = eventos[11]; //Se actualiza el reloj
         
@@ -888,7 +934,7 @@ public class Simulacion {
     // Evento en el que se libera la línea 2 del router
     void seLiberaLinea2() {
         
-        interfaz.escribirResultado("Se liberó la línea 2 del router\n\n");
+        interfaz.escribirResultado("Evento:  Se liberó la línea 2 del router\n\n");
         
         reloj = eventos[12]; //Se actualiza el reloj
         
