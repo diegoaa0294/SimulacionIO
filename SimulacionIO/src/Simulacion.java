@@ -81,16 +81,18 @@ public class Simulacion {
     // Estructura de archivo
     class Archivo {
 
-        int prioridad;      // 1 o 2
-        int tamano;         // 1 a 64 paquetes
-        int virus;          // Cantidad de virus del archivo
-        char computadora;   // A, B o C
+        int prioridad;          // 1 o 2
+        int tamano;             // 1 a 64 paquetes
+        int virus;              // Cantidad de virus del archivo
+        double llegadaAntivirus;// Tiempo de llegada al antivirus
+        char computadora;       // A, B o C
 
         // Constructor
         Archivo(int p, int t, int v, char c) {
             prioridad = p;
             tamano = t;
             virus = v;
+            llegadaAntivirus = -1;
             computadora = c;
         }
     };
@@ -337,7 +339,13 @@ public class Simulacion {
     void siguienteEvento() {
 
         int menor = 0;
-
+        
+        if( colaEnvioAntivirus.size() > 0 ){
+            // El evento llegaArchivoAntivirus ocurre a la hora que llegue
+            // el primer archivo de colaEnvioAntivirus
+            eventos[9] = colaEnvioAntivirus.getFirst().llegadaAntivirus;
+        }
+        
         // Se escoje el evento con el menor tiempo de ocurrencia
         for (int i = 1; i < 13; i++) {
 
@@ -559,7 +567,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -601,7 +609,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -642,7 +650,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -689,7 +697,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -733,7 +741,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -777,7 +785,7 @@ public class Simulacion {
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
             // encola el archivo en la cola de envío al antivirus
-            eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
+            archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
@@ -889,6 +897,7 @@ public class Simulacion {
         }
         
         
+        
         // Si hay archivos en la cola de entrada
         if( !colaEntradaAntivirus.isEmpty() ){
             
@@ -928,6 +937,7 @@ public class Simulacion {
             }
         }
         else{
+            archivoActual = null;
             eventos[10] = -1; //Se desprograma este evento.
         }
     }
@@ -1124,6 +1134,5 @@ public class Simulacion {
                     
             Sim.finalizarSimulacionGlobal();
         }
-
     }
 }
