@@ -62,13 +62,12 @@ public class Simulacion {
     boolean linea2routerLibre;
     boolean interrupcion;
     
-    // Tiempos de token
-    double tokenA;
-    double tokenB;
-    double tokenC;
+    // Tiempo restante de token
+    double tiempoToken;
 
     
     // Colas de objetos Archivo
+    LinkedList<Archivo> colaEnvioAntivirus;          //Archivos que se envian al antivirus y todavía no han llegado
     LinkedList<Archivo> colaEntradaAntivirus;        //Archivos que esperan para ser atendidos por el antivirus
     LinkedList<Archivo> colaSalidaAntivirus ;        //Archivos que esperan para ser enviados por el reouter
     
@@ -106,8 +105,8 @@ public class Simulacion {
         eventos = new double[13];
         reloj = 0;
         contadorSimulacion = 1;
-        computadoraConToken = "";
-        //archivoActual = null;
+        computadoraConToken = "Ninguna";
+        tiempoToken = 0;
 
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
@@ -128,6 +127,7 @@ public class Simulacion {
         interrupcion = false;
         
         // Se crean las colas
+        colaEnvioAntivirus = new LinkedList();
         colaEntradaAntivirus = new LinkedList();
         colaSalidaAntivirus = new LinkedList();
         
@@ -187,6 +187,12 @@ public class Simulacion {
         
         while( interfaz.interrupcion == false && reloj <= tiempoTotal  ){
             
+            /* Para probar */
+            for (int i = 0; i < 13; i++) {
+            interfaz.escribirResultado("Siguiente evento:  eventos["+i+"]: " + eventos[i] + "\n");
+            }
+            interfaz.escribirResultado("\n\n");
+            
             // Ejecuta el siguiente evento a ocurrir
             siguienteEvento();
             
@@ -200,11 +206,13 @@ public class Simulacion {
             interfaz.escribirResultado("Cola B prioridad 2:  " + colaB2.size() + " \n");
             interfaz.escribirResultado("Cola C prioridad 1:  " + colaC1.size() + " \n");
             interfaz.escribirResultado("Cola C prioridad 2:  " + colaC2.size() + " \n");
+            interfaz.escribirResultado("Cola de envío al antivirus:  " + colaEnvioAntivirus.size() + " \n");
             interfaz.escribirResultado("Cola entrada antivirus:  " + colaEntradaAntivirus.size() + " \n");
             interfaz.escribirResultado("Cola salida antivirus:  " + colaSalidaAntivirus.size() + " \n\n");
             
             // Muestra cual computadora tiene el token
-            interfaz.escribirResultado("Computadora con token:  " + computadoraConToken + " \n\n");
+            interfaz.escribirResultado("Computadora con token:  " + computadoraConToken + " \n");
+            interfaz.escribirResultado("Tiempo restante de token:  " + tiempoToken + " \n\n");
             
             // Muestra el archivo que está siendo revisado por el router
             interfaz.escribirResultado("Archivo en revisión:\n");
@@ -225,12 +233,6 @@ public class Simulacion {
             
             interfaz.escribirResultado("------------------------------------------------------------------- \n\n");
             
-            /* Para probar
-            for (int i = 0; i < 13; i++) {
-            interfaz.escribirResultado("Siguiente evento:  eventos["+i+"]: " + eventos[i] + "\n");
-            }
-            interfaz.escribirResultado("\n");
-            */
             
             delay(); // Delay de 1 segundo entre cada evento
         }
@@ -264,7 +266,9 @@ public class Simulacion {
     void reiniciarVariables(){
     
         reloj = 0;
-
+	computadoraConToken = "Ninguna";
+        tiempoToken = 0;
+	
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
         eventos[1] = 0;
@@ -283,6 +287,7 @@ public class Simulacion {
         linea2routerLibre = true;
         
         // Se limpian todas las colas
+        colaEnvioAntivirus.clear();
         colaEntradaAntivirus.clear();
         colaSalidaAntivirus.clear();
         colaA1.clear();
@@ -413,7 +418,7 @@ public class Simulacion {
     // Busca y saca de una cola el Arcihvo más grande que se puede enviar en
     // el tiempo especificado en tiempoToken y devuelve dicho Archivo.
     // Devuelve null si no encuentra un Archivo que satisfaga la condición.
-    private Archivo buscarArchivo( LinkedList<Archivo> cola, double tiempoToken ){
+    private Archivo buscarArchivo( LinkedList<Archivo> cola ){
         
         Archivo A = null;
         
@@ -542,8 +547,8 @@ public class Simulacion {
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaA1, tokenA) ) == null ){
-            archivoEnvio = buscarArchivo(colaA2, tokenA);
+        if( ( archivoEnvio = buscarArchivo( colaA1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaA2 );
         }
         
         
@@ -553,17 +558,22 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenA = tokenA - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[3] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaA
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
+        // libera el token y se lo pasa a la siguiente computadora.
         else{
-            tokenA = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
+            computadoraConToken = "";
+            eventos[7] = reloj; // Libera el token, programa llegaTokenB
             eventos[3] = -1; // Se desprograma seLiberaA
         }
     }
@@ -580,8 +590,8 @@ public class Simulacion {
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaB1, tokenB) ) == null ){
-            archivoEnvio = buscarArchivo(colaB2, tokenB);
+        if( ( archivoEnvio = buscarArchivo( colaB1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaB2 );
         }
         
         // Si se encontró algún archivo
@@ -590,17 +600,21 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenB = tokenB - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[4] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaB
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
         else{
-            tokenB = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
+            computadoraConToken = "";
+            eventos[8] = reloj; // Libera el token, programa llegaTokenC
             eventos[4] = -1; // Se desprograma seLiberaB
         }
     }
@@ -617,8 +631,8 @@ public class Simulacion {
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaC1, tokenC) ) == null ){
-            archivoEnvio = buscarArchivo(colaC2, tokenC);
+        if( ( archivoEnvio = buscarArchivo( colaC1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaC2 );
         }
         
         // Si se encontró algún archivo
@@ -627,17 +641,21 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenC = tokenC - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[5] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaC
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
         else{
-            tokenC = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
+            computadoraConToken = "";
+            eventos[6] = reloj; // Libera el token, programa llegaTokenA
             eventos[5] = -1; // Se desprograma seLiberaC
         }
     }
@@ -653,14 +671,14 @@ public class Simulacion {
         reloj = eventos[6];                 // Se actualiza el reloj
         eventos[6] = -1;                    // infinito, desprograma llegaTokenA
         eventos[7] = reloj + duracionToken; // Programa llegaTokenB
-        tokenA = duracionToken;
+        tiempoToken = duracionToken;        // Asigna todo el tiempo del token
         Archivo archivoEnvio;
         
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaA1, tokenA) ) == null ){
-            archivoEnvio = buscarArchivo(colaA2, tokenA);
+        if( ( archivoEnvio = buscarArchivo( colaA1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaA2 );
         }
         
         
@@ -670,17 +688,19 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenA = tokenA - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[3] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaA
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
         else{
-            tokenA = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
             computadoraConToken = "";
             eventos[7] = reloj; // Libera el token, programa llegaTokenB
         }
@@ -697,13 +717,13 @@ public class Simulacion {
         reloj = eventos[7];                 // Se actualiza el reloj
         eventos[7] = -1;                    // infinito, desprograma llegaTokenB
         eventos[8] = reloj + duracionToken; // Programa llegaTokenC
-        tokenB = duracionToken;
+        tiempoToken = duracionToken;        // Asigna todo el tiempo del token
         Archivo archivoEnvio;
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaB1, tokenB) ) == null ){
-            archivoEnvio = buscarArchivo(colaB2, tokenB);
+        if( ( archivoEnvio = buscarArchivo( colaB1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaB2 );
         }
         
         // Si se encontró algún archivo
@@ -712,17 +732,19 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenB = tokenB - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[4] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaB
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
         else{
-            tokenB = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
             computadoraConToken = "";
             eventos[8] = reloj; // Libera el token, programa llegaTokenC
         }
@@ -739,13 +761,13 @@ public class Simulacion {
         reloj = eventos[8];                 // Se actualiza el reloj
         eventos[8] = -1;                    // infinito, desprograma llegaTokenC
         eventos[6] = reloj + duracionToken; // Programa llegaTokenA
-        tokenC = duracionToken;
+        tiempoToken = duracionToken;        // Asigna todo el tiempo del token
         Archivo archivoEnvio;
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
         // se saca el más grande, si no se busca en la cola de prioridad 2.
-        if( ( archivoEnvio = buscarArchivo(colaC1, tokenC) ) == null ){
-            archivoEnvio = buscarArchivo(colaC2, tokenC);
+        if( ( archivoEnvio = buscarArchivo( colaC1 ) ) == null ){
+            archivoEnvio = buscarArchivo( colaC2 );
         }
         
         // Si se encontró algún archivo
@@ -754,17 +776,19 @@ public class Simulacion {
             interfaz.escribirResultado("Enviando archivo al antivirus...\n\n");
             
             // Se calcula el tiempo de llegada del archivo al antivirus y se
-            // encola el archivo en la cola de entrada del antivirus
+            // encola el archivo en la cola de envío al antivirus
             eventos[9] = reloj + archivoEnvio.tamano*1/2+1/4;
-            colaEntradaAntivirus.add( archivoEnvio );
+            colaEnvioAntivirus.add( archivoEnvio );
             
-            tokenC = tokenC - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
+            tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[5] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaC
         }
         
         // Si no encuentra archivos en ninguna de las dos colas
         else{
-            tokenC = 0;
+            interfaz.escribirResultado("Se liberó el token, no se pueden enviar archivos\n\n");
+            
+            tiempoToken = 0;
             computadoraConToken = "";
             eventos[6] = reloj; // Libera el token, programa llegaTokenA
         }
@@ -780,11 +804,15 @@ public class Simulacion {
         
         reloj = eventos[9]; // Actualiza el reloj
         
+        // Saca el primer archivo de la cola de envío
+        // y lo mete en la cola de entrada al antivirus.
+        colaEntradaAntivirus.add( colaEnvioAntivirus.pop() );
+        
         
         // Si el antivirus está libre
         if ( antivirusLibre ) {
             
-            // Saca el primer archivo de la cola de entrada
+            // Saca el primer archivo de la cola de envío
             // y lo mete al antivirus como archivo actual.
             archivoActual = colaEntradaAntivirus.pop();
             
