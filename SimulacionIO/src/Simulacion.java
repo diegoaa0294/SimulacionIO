@@ -484,7 +484,7 @@ public class Simulacion {
             colaA2.add( A );
         }
         
-        // Programa el evento llegaArchivoA
+        // Programa el evento llegaArchivoA, distribución exponencial
         eventos[0] = reloj + generarExponencial();
     }
     
@@ -538,8 +538,8 @@ public class Simulacion {
             colaC2.add( A );
         }
         
-        // Programa el evento llegaArchivoC
-        eventos[2] = reloj + generarDistB();//generarNormal();
+        // Programa el evento llegaArchivoC, distribución normal
+        eventos[2] = reloj + generarNormal();
     }
 
     
@@ -1018,8 +1018,21 @@ public class Simulacion {
     
     // Genera un número aleatorio con distribución normal
     private double generarNormal() {
-
-        return 0;
+        
+        // media m = 5 segundos
+        // desviación estándar sd = 0.1 segundos
+        // Z = (-2*ln r1)^(1/2) * sin(2*pi*r2)
+        // X = m + sd*Z
+        
+        //Números aleatorios entre 0 y 1 con distribución uniforme.
+        double r1 = Math.random();
+        double r2 = Math.random();
+        
+        double Z = Math.pow( -2*Math.log(r1), 0.5 ) * Math.sin(2*(Math.PI)*r2);
+        
+        double X = 5 + 0.1*Z;
+        
+        return X;
     }
     
     
@@ -1108,6 +1121,8 @@ public class Simulacion {
     }
 
 
+    
+    
     
     
     
