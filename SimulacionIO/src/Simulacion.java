@@ -31,7 +31,17 @@ public class Simulacion {
     String computadoraConToken;
     
     Archivo archivoActual; // Representa el archivo que está siendo revisado por el antivirus
-
+    
+    int [] envios; // Estructura para calcular el promedio de archivos enviados por cada turno del token
+    // enviados[0]  -> número de archivos enviados
+    // enviados[1]  -> números de turnos de token
+    
+    
+    // Estructuras para almacenar estadísticas globales
+    LinkedList permanenciaGlobal;
+    LinkedList revisionesGlobal;
+    LinkedList enviosGlobal;
+    
     // Interfaz gráfica de usuario
     Interfaz interfaz;
 
@@ -69,7 +79,8 @@ public class Simulacion {
     // Colas de objetos Archivo
     LinkedList<Archivo> colaEnvioAntivirus;          //Archivos que se envian al antivirus y todavía no han llegado
     LinkedList<Archivo> colaEntradaAntivirus;        //Archivos que esperan para ser atendidos por el antivirus
-    LinkedList<Archivo> colaSalidaAntivirus ;        //Archivos que esperan para ser enviados por el reouter
+    LinkedList<Archivo> colaSalidaAntivirus;         //Archivos que esperan para ser enviados por el reouter
+    LinkedList<Archivo> colaFinal;                   //Archivos que salen del sistema a su destino final
     
     LinkedList<Archivo> colaA1;
     LinkedList<Archivo> colaA2;
@@ -84,16 +95,23 @@ public class Simulacion {
         int prioridad;          // 1 o 2
         int tamano;             // 1 a 64 paquetes
         int virus;              // Cantidad de virus del archivo
-        double llegadaAntivirus;// Tiempo de llegada al antivirus
         char computadora;       // A, B o C
+        double llegadaAntivirus;// Tiempo de llegada al antivirus
+        double llegada;         // Tiempo de llegada al sistema
+        double salida;          // Tiempo de salida del sistema
 
         // Constructor
-        Archivo(int p, int t, int v, char c) {
+        Archivo(int p, int t, int v, char c, double ll) {
             prioridad = p;
             tamano = t;
             virus = v;
-            llegadaAntivirus = -1;
             computadora = c;
+            llegadaAntivirus = -1;
+            llegada = ll;
+        }
+        
+        void asignarSalida( double s ){
+            salida = s;
         }
     };
 
@@ -109,7 +127,11 @@ public class Simulacion {
         contadorSimulacion = 1;
         computadoraConToken = "Ninguna";
         tiempoToken = 0;
-
+        envios = new int[2];
+        
+        envios[0] = 0;
+        envios[1] = 0;
+        
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
         eventos[1] = 0;
@@ -132,6 +154,7 @@ public class Simulacion {
         colaEnvioAntivirus = new LinkedList();
         colaEntradaAntivirus = new LinkedList();
         colaSalidaAntivirus = new LinkedList();
+        colaFinal = new LinkedList();
         
         colaA1 =  new LinkedList();
         colaA2 =  new LinkedList();
@@ -139,6 +162,10 @@ public class Simulacion {
         colaB2 =  new LinkedList();
         colaC1 =  new LinkedList();
         colaC2 =  new LinkedList();
+        
+        permanenciaGlobal =  new LinkedList();
+        revisionesGlobal =  new LinkedList();
+        enviosGlobal =  new LinkedList();
     }
     
     
@@ -189,11 +216,11 @@ public class Simulacion {
         
         while( interfaz.interrupcion == false && reloj <= tiempoTotal  ){
             
-            /* Para probar */
+            /*// Para probar 
             for (int i = 0; i < 13; i++) {
             interfaz.escribirResultado("Siguiente evento:  eventos["+i+"]: " + eventos[i] + "\n");
             }
-            interfaz.escribirResultado("\n\n");
+            interfaz.escribirResultado("\n\n");*/
             
             // Ejecuta el siguiente evento a ocurrir
             siguienteEvento();
@@ -255,13 +282,53 @@ public class Simulacion {
     private void finalizarSimulacion(){
         
         if( interrupcion == false ){
-            interfaz.escribirResultado("\nSimulación "+ contadorSimulacion +" finalizada.\n\n\n\n");
+            interfaz.escribirResultado("\nSimulación "+ contadorSimulacion +" finalizada.\n\n\n");
         }
         
+        imprimirEstadisticas();
+        agregarEnGlobal();
+        
         reiniciarVariables();
-        // Imprimir estadísticas
     }
     
+    
+    // Muestra las estadísticas finales en la interfaz 
+    private void imprimirEstadisticas(){
+        
+        interfaz.escribirResultado("Tiempo promedio de permanencia de un archivo en el sistema:\n"+ promedioPermamencia() +" segundos\n\n");
+        
+        interfaz.escribirResultado("Promedio de archivos enviados por cada turno del token:\n"+ promedioEnvios() +" archivos\n\n");
+        
+        interfaz.escribirResultado("Número promedio de revisiones del antivirus por archivo:\n"+ promedioRevisiones()+" revisiones\n\n\n");
+        
+        interfaz.escribirResultado("------------------------------------------------------------------- \n\n\n\n\n");
+    }
+    
+    
+    
+    // Agrega las estadisticas de la simulación que acaba de terminar a las estadísticas globales
+    private void agregarEnGlobal(){
+    
+        permanenciaGlobal.add( promedioPermamencia() );
+        enviosGlobal.add( promedioEnvios());
+        revisionesGlobal.add( promedioRevisiones());
+    }
+    
+    
+    
+    // Muestra las estadísticas globales en la interfaz 
+    private void imprimirEstadisticasGlobales(){
+        
+        interfaz.escribirResultado("Estadísticas globales:\n\n");
+        
+        interfaz.escribirResultado("Tiempo promedio de permanencia de un archivo en el sistema:\n"+ promedioPermamenciaGlobal() +" segundos\n\n");
+        
+        interfaz.escribirResultado("Promedio de archivos enviados por cada turno del token:\n"+ promedioEnviosGlobal() +" archivos\n\n");
+        
+        interfaz.escribirResultado("Número promedio de revisiones del antivirus por archivo:\n"+ promedioRevisionesGlobal()+" revisiones\n\n\n");
+        
+        interfaz.escribirResultado("------------------------------------------------------------------- \n\n");
+    }
     
     
     // Reinicia las variables globales
@@ -271,6 +338,9 @@ public class Simulacion {
 	computadoraConToken = "Ninguna";
         tiempoToken = 0;
 	
+        envios[0] = 0;
+        envios[1] = 0;
+        
         // Los primeros eventos a ocurrir
         eventos[0] = 0;
         eventos[1] = 0;
@@ -292,6 +362,7 @@ public class Simulacion {
         colaEnvioAntivirus.clear();
         colaEntradaAntivirus.clear();
         colaSalidaAntivirus.clear();
+        colaFinal.clear();
         colaA1.clear();
         colaA2.clear();
         colaB1.clear();
@@ -307,12 +378,12 @@ public class Simulacion {
     
     void finalizarSimulacionGlobal(){
         
-        // Hay que mostrar estadisticas globales
-        
         // Si no hubo interrupción
         if( interrupcion == false ){
-            interfaz.escribirResultado("Simulación global finalizada.\n\n");
+            interfaz.escribirResultado("Simulación global finalizada.\n\n\n");
         }
+        
+        imprimirEstadisticasGlobales();
         
         contadorSimulacion = 1;
         interrupcion = false;
@@ -474,7 +545,7 @@ public class Simulacion {
         int prioridad = generarPrioridad();
         int tamano = generarTamano();
         int virus = generarNumVirus();
-        Archivo A = new Archivo(prioridad, tamano, virus, 'A');
+        Archivo A = new Archivo(prioridad, tamano, virus, 'A', reloj);
         
         // Encola el archivo
         if( prioridad == 1 ){
@@ -501,7 +572,7 @@ public class Simulacion {
         int prioridad = generarPrioridad();
         int tamano = generarTamano();
         int virus = generarNumVirus();
-        Archivo A = new Archivo(prioridad, tamano, virus, 'B');
+        Archivo A = new Archivo(prioridad, tamano, virus, 'B', reloj);
 
         // Encola el archivo
         if( prioridad == 1 ){
@@ -528,7 +599,7 @@ public class Simulacion {
         int prioridad = generarPrioridad();
         int tamano = generarTamano();
         int virus = generarNumVirus();
-        Archivo A = new Archivo(prioridad, tamano, virus, 'C');
+        Archivo A = new Archivo(prioridad, tamano, virus, 'C', reloj);
 
         // Encola el archivo
         if( prioridad == 1 ){
@@ -569,6 +640,8 @@ public class Simulacion {
             // encola el archivo en la cola de envío al antivirus
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
+            
+            envios[0]++; // Aumenta la cantidad de archivos enviados
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[3] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaA
@@ -612,6 +685,8 @@ public class Simulacion {
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
+            envios[0]++; // Aumenta la cantidad de archivos enviados
+            
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[4] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaB
         }
@@ -653,6 +728,8 @@ public class Simulacion {
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
             
+            envios[0]++; // Aumenta la cantidad de archivos enviados
+            
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[5] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaC
         }
@@ -680,6 +757,7 @@ public class Simulacion {
         eventos[6] = -1;                    // infinito, desprograma llegaTokenA
         eventos[7] = reloj + duracionToken; // Programa llegaTokenB
         tiempoToken = duracionToken;        // Asigna todo el tiempo del token
+        envios[1]++;                        // Aumenta la cantidad de turnos de token
         Archivo archivoEnvio;
         
         
@@ -699,6 +777,8 @@ public class Simulacion {
             // encola el archivo en la cola de envío al antivirus
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
+            
+            envios[0]++; // Aumenta la cantidad de archivos enviados
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[3] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaA
@@ -726,6 +806,7 @@ public class Simulacion {
         eventos[7] = -1;                    // infinito, desprograma llegaTokenB
         eventos[8] = reloj + duracionToken; // Programa llegaTokenC
         tiempoToken = duracionToken;        // Asigna todo el tiempo del token
+        envios[1]++;                        // Aumenta la cantidad de turnos de token
         Archivo archivoEnvio;
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
@@ -743,6 +824,8 @@ public class Simulacion {
             // encola el archivo en la cola de envío al antivirus
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
+            
+            envios[0]++; // Aumenta la cantidad de archivos enviados
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[4] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaB
@@ -770,6 +853,7 @@ public class Simulacion {
         eventos[8] = -1;                    // infinito, desprograma llegaTokenC
         eventos[6] = reloj + duracionToken; // Programa llegaTokenA
         tiempoToken = duracionToken;        // Asigna todo el tiempo del token
+        envios[1]++;                        // Aumenta la cantidad de turnos de token
         Archivo archivoEnvio;
         
         // Si hay archivos en la cola de prioridad 1 que den tiempo de enviar,
@@ -787,6 +871,8 @@ public class Simulacion {
             // encola el archivo en la cola de envío al antivirus
             archivoEnvio.llegadaAntivirus = reloj + archivoEnvio.tamano*1/2+1/4;
             colaEnvioAntivirus.add( archivoEnvio );
+            
+            envios[0]++; // Aumenta la cantidad de archivos enviados
             
             tiempoToken = tiempoToken - archivoEnvio.tamano*1/2;      // Se resta tiempo de token
             eventos[5] = reloj + archivoEnvio.tamano*1/2;   // Se calcula seLiberaC
@@ -956,8 +1042,12 @@ public class Simulacion {
             
             interfaz.escribirResultado("Router enviando archivo por línea 1...\n\n");
             
-            Archivo actual;
-            actual = colaSalidaAntivirus.pop(); //**Creo que hay que hacer algo con este archivo
+            Archivo actual = colaSalidaAntivirus.pop(); // Saca el archivo de la cola de salida del antivirus
+            
+            actual.asignarSalida(reloj); // Asigna el tiempo de salida del archivo
+            
+            colaFinal.add(actual); // Agrega el archivo a la cola de archivos que salen del sistema
+            
             eventos[11] = reloj + (actual.tamano / 64);
             linea1routerLibre = false;
         }
@@ -982,8 +1072,12 @@ public class Simulacion {
             
             interfaz.escribirResultado("Router enviando archivo por línea 2...\n\n");
             
-            Archivo actual;
-            actual = colaSalidaAntivirus.pop(); 
+            Archivo actual = colaSalidaAntivirus.pop(); // Saca el archivo de la cola de salida del antivirus
+            
+            actual.asignarSalida(reloj); // Asigna el tiempo de salida del archivo
+            
+            colaFinal.add(actual); // Agrega el archivo a la cola de archivos que salen del sistema 
+            
             eventos[12] = reloj + (actual.tamano / 64);
             linea2routerLibre = false;
         }
@@ -995,6 +1089,105 @@ public class Simulacion {
 
     
 
+    /*--------------------------- ESTADÍSTICAS -------------------------------*/
+    
+    
+    // Calcula el tiempo promedio de permanencia de un archivo en el sistema
+    private double promedioPermamencia(){
+        
+        double promedio = 0;
+        
+        // Si la cola no está vacía
+        if( colaFinal.size() > 0 ){
+        
+            // Itera sobre la cola
+            for( int i = 0; i < colaFinal.size(); i++ ){
+                promedio = promedio + ( colaFinal.get(i).salida - colaFinal.get(i).llegada );
+            }
+        
+            promedio = promedio / colaFinal.size();
+        }
+        
+        return promedio;
+    }
+    
+    
+    
+    // Calcula el número promedio de revisiones del antivirus por archivo
+    private double promedioRevisiones(){
+    
+        double promedio = 0;
+        
+        // Si la cola no está vacía
+        if( colaFinal.size() > 0 ){
+        
+            // Itera sobre la cola
+            for( int i = 0; i < colaFinal.size(); i++ ){
+                promedio = promedio + colaFinal.get(i).virus + 1;
+            }
+        
+            promedio = (double)(promedio / colaFinal.size());
+        }
+        
+        return promedio;
+    }
+    
+    
+    
+    // Calcula el promedio de archivos enviados por cada turno del token
+    private double promedioEnvios(){
+        
+        //Número de archivos enviados entre la cantidad de turnos de token
+        double promedio = (double)( envios[0] / envios[1] ); 
+        
+        return promedio;
+    }
+    
+    
+    
+    // Calcula el tiempo promedio de permanencia de un archivo en el sistema de la simulación global
+    private double promedioPermamenciaGlobal(){
+        
+        double promedio = 0;
+        
+        for( int i = 0; i < permanenciaGlobal.size(); i++ ){
+            promedio = promedio + (double)( permanenciaGlobal.get(i) );
+        }
+        promedio = promedio / permanenciaGlobal.size();
+        
+        return promedio;
+    }
+    
+    
+    
+    // Calcula el número promedio de revisiones del antivirus por archivo de la simulación global
+    private double promedioRevisionesGlobal(){
+        
+        double promedio = 0;
+        
+        for( int i = 0; i < revisionesGlobal.size(); i++ ){
+            promedio = promedio + (double)( revisionesGlobal.get(i) );
+        }
+        promedio = promedio / revisionesGlobal.size();
+        
+        return promedio;
+    }
+    
+    
+    // Calcula el promedio de archivos enviados por cada turno del token de la simulación global
+    private double promedioEnviosGlobal(){
+        
+        double promedio = 0;
+        
+        for( int i = 0; i < enviosGlobal.size(); i++ ){
+            promedio = promedio + (double)( enviosGlobal.get(i) );
+        }
+        promedio = promedio / enviosGlobal.size();
+        
+        return promedio;
+    }
+    
+    
     /*------------------------ NÚMEROS ALEATORIOS ----------------------------*/
     
     
@@ -1092,32 +1285,35 @@ public class Simulacion {
     // Genera un número de virus aleatorio
     private int generarNumVirus() {
         
-        int min = 1;
-        int max = 100;
-        int probabilidad;
-        int numero_virus;
+        int min = 0;
+        int max = 1;
+        double probabilidad;
+        int numeroVirus = 0;
 
         Random r = new Random();
-        probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+        probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 0 y 1
+        
         //Pregunto si da en el rango de virus, 1 virus
-        if (probabilidad < 6) {
+        if (probabilidad < 0.05) {
+            
+            numeroVirus = 1;
             probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+            
             //Pregunto si da en el rango de virus, 2 virus
-            if (probabilidad < 6) {
+            if (probabilidad < 0.05) {
+                
+                numeroVirus = 2;
                 probabilidad = r.nextInt(max - min + 1) + min; //Numero aleatorio entre 1 y 100
+                
                 //Pregunto si da en el rango de virus, 3 virus
-                if (probabilidad < 6) {
-                    numero_virus = 100;
-                } else {
-                    numero_virus = 2;
-                }
-            } else {
-                numero_virus = 1;
+                if (probabilidad < 0.05) {
+                    
+                    numeroVirus = 3;
+                } 
             }
-        } else {
-            numero_virus = 0;
         }
-        return numero_virus;
+        
+        return numeroVirus;
     }
 
 
